@@ -8,12 +8,12 @@
     <groupId>com.ibm.eventautomation.demos</groupId>
     <artifactId>kafka-connect-loosehangerjeans-source</artifactId>
     <description>Kafka Connect source connector used for generating simulated events for demos and tests</description>
-    <version>0.6.1</version>
+    <version>0.0.1</version>
 
     <developers>
         <developer>
-            <id>dalelane</id>
-            <name>Dale Lane</name>
+            <id>prichelle</id>
+            <name>pierre richelle</name>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -21,14 +21,14 @@
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/IBM/kafka-connect-loosehangerjeans-source.git</connection>
-        <developerConnection>scm:git:git@github.com/IBM/kafka-connect-loosehangerjeans-source.git</developerConnection>
-        <url>https://github.com/IBM/kafka-connect-loosehangerjeans-source</url>
+        <connection>scm:git:https://github.com/prichelle/kafka-connect-loosehangerjeans-source.git</connection>
+        <developerConnection>scm:git:git@github.com/prichelle/kafka-connect-loosehangerjeans-source.git</developerConnection>
+        <url>https://github.com/prichelle/kafka-connect-loosehangerjeans-source</url>
     </scm>
 
     <issueManagement>
         <system>github</system>
-        <url>https://github.com/IBM/kafka-connect-loosehangerjeans-source/issues</url>
+        <url>https://github.com/prichelle/kafka-connect-loosehangerjeans-source/issues</url>
     </issueManagement>
 
     <dependencies>

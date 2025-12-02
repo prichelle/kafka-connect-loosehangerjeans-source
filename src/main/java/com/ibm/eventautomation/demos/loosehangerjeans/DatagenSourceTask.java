@@ -85,64 +85,85 @@ public class DatagenSourceTask extends SourceTask {
             }
         }
 
-        // schedule the timer tasks that will periodically generate
+        List<String> outputsToGenerate = config.getList(DatagenSourceConfig.CONFIG_GEN_OUTPUT);
+        log.info("Outputs to generate: {}", outputsToGenerate);
+
+        //  schedule the timer tasks that will periodically generate
         //  new messages and add them to the queue
 
         orderGenerator = new OrderGenerator(config);
         cancellationGenerator = new CancellationGenerator(config);
 
-        // new customer registrations
-        NewCustomerTask newCustomers = new NewCustomerTask(config, orderGenerator, queue, generateTimer);
-        generateTimer.scheduleAtFixedRate(newCustomers, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_NEWCUSTOMERS));
+        if (outputsToGenerate.contains("CUSTOMERS")) {
+            // out-of-stock events
+            //  create out-of-stock events when products are ordered
+            NewCustomerTask newCustomers = new NewCustomerTask(config, orderGenerator, queue, generateTimer);
+            generateTimer.scheduleAtFixedRate(newCustomers, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_NEWCUSTOMERS));
+       }
+       if (outputsToGenerate.contains("ORDERS")) {
+            // orders are created as part of other tasks    
+            // "normal" orders
+            //  create regular, innocent, "normal" orders and cancellations
+            NormalOrdersTask normalOrders = new NormalOrdersTask(config, orderGenerator, cancellationGenerator, queue, generateTimer);
+            generateTimer.scheduleAtFixedRate(normalOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_ORDERS));
+            // innocent but unusual-looking orders
+            //  create orders and cancellations that are innocent
+            FalsePositivesTask falsePositiveOrders = new FalsePositivesTask(config, orderGenerator, cancellationGenerator, queue, generateTimer);
+            generateTimer.scheduleAtFixedRate(falsePositiveOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_FALSEPOSITIVES));
 
-        // "normal" orders
-        //  create regular, innocent, "normal" orders and cancellations
-        NormalOrdersTask normalOrders = new NormalOrdersTask(config, orderGenerator, cancellationGenerator, queue, generateTimer);
-        generateTimer.scheduleAtFixedRate(normalOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_ORDERS));
+            // suspicious, possibly fraudulent orders
+            SuspiciousOrdersTask suspiciousOrders = new SuspiciousOrdersTask(config, orderGenerator, cancellationGenerator, queue, generateTimer);
+            generateTimer.scheduleAtFixedRate(suspiciousOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_SUSPICIOUSORDERS));
 
-        // innocent but unusual-looking orders
-        //  create orders and cancellations that are innocent
-        FalsePositivesTask falsePositiveOrders = new FalsePositivesTask(config, orderGenerator, cancellationGenerator, queue, generateTimer);
-        generateTimer.scheduleAtFixedRate(falsePositiveOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_FALSEPOSITIVES));
+        }
+                        // new customer registrations
+ 
 
-        // suspicious, possibly fraudulent orders
-        SuspiciousOrdersTask suspiciousOrders = new SuspiciousOrdersTask(config, orderGenerator, cancellationGenerator, queue, generateTimer);
-        generateTimer.scheduleAtFixedRate(suspiciousOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_SUSPICIOUSORDERS));
+       if (outputsToGenerate.contains("STOCKMOVEMENTS")) {
+            // stock movements
+            StockMovementsTask stockMovements = new StockMovementsTask(config, queue);
+            generateTimer.scheduleAtFixedRate(stockMovements, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_STOCKMOVEMENTS));
 
-        // stock movements
-        StockMovementsTask stockMovements = new StockMovementsTask(config, queue);
-        generateTimer.scheduleAtFixedRate(stockMovements, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_STOCKMOVEMENTS));
+         }
 
+       if (outputsToGenerate.contains("BADGEINS")) {
         // door-badge events
         BadgeInTask badgeIns = new BadgeInTask(config, queue);
         generateTimer.scheduleAtFixedRate(badgeIns, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_BADGEINS));
+       }
+       if (outputsToGenerate.contains("SENSORREADINGS")) {
+            // IoT sensor readings
+            SensorReadingTask sensorReadings = new SensorReadingTask(config, queue);
+            generateTimer.scheduleAtFixedRate(sensorReadings, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_SENSORREADINGS));
+            HighSensorReadingTask highSensorReadings = new HighSensorReadingTask(config, queue);
+            generateTimer.scheduleAtFixedRate(highSensorReadings, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_HIGHSENSORREADINGS));
+       }
 
-        // IoT sensor readings
-        SensorReadingTask sensorReadings = new SensorReadingTask(config, queue);
-        generateTimer.scheduleAtFixedRate(sensorReadings, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_SENSORREADINGS));
-        HighSensorReadingTask highSensorReadings = new HighSensorReadingTask(config, queue);
-        generateTimer.scheduleAtFixedRate(highSensorReadings, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_HIGHSENSORREADINGS));
-
+       if (outputsToGenerate.contains("ONLINEORDERS")) {
         // online orders
-        // create online activity events, including clickstreams, orders, and abandoned cart notifications
-        OnlineActivityTask onlineOrders = new OnlineActivityTask(config, queue, generateTimer);
-        generateTimer.scheduleAtFixedRate(onlineOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_ONLINEORDERS));
+            // create online activity events, including clickstreams, orders, and abandoned cart notifications
+            OnlineActivityTask onlineOrders = new OnlineActivityTask(config, queue, generateTimer);
+            generateTimer.scheduleAtFixedRate(onlineOrders, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_ONLINEORDERS));
+         }
 
-        // return requests
-        // create return requests and product reviews
-        Map<String, Product> productsWithSizeIssue = new ProductGenerator(config).generate(config.getInt(DatagenSourceConfig.CONFIG_PRODUCTREVIEWS_PRODUCTS_WITH_SIZE_ISSUE_COUNT));
-        log.info("Products that have a size issue: {}", productsWithSizeIssue.values());
-        ProductReviewGenerator productReviewGenerator = new ProductReviewGenerator(config, productsWithSizeIssue);
-        ReturnRequestsTask returnRequests = new ReturnRequestsTask(config, queue, generateTimer, productReviewGenerator);
-        generateTimer.scheduleAtFixedRate(returnRequests, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_RETURNREQUESTS));
+        if (outputsToGenerate.contains("PRODUCTS")) {
+            // return requests
+            // create return requests and product reviews
+            Map<String, Product> productsWithSizeIssue = new ProductGenerator(config).generate(config.getInt(DatagenSourceConfig.CONFIG_PRODUCTREVIEWS_PRODUCTS_WITH_SIZE_ISSUE_COUNT));
+            log.info("Products that have a size issue: {}", productsWithSizeIssue.values());
+            ProductReviewGenerator productReviewGenerator = new ProductReviewGenerator(config, productsWithSizeIssue);
+            ReturnRequestsTask returnRequests = new ReturnRequestsTask(config, queue, generateTimer, productReviewGenerator);
+            generateTimer.scheduleAtFixedRate(returnRequests, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_RETURNREQUESTS));
 
-        // product reviews
-        ProductReviewsTask productReviews = new ProductReviewsTask(config, queue, productReviewGenerator);
-        generateTimer.scheduleAtFixedRate(productReviews, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_PRODUCTREVIEWS));
-
-        // transactions
-        TransactionTask transactions = new TransactionTask(config, queue);
-        generateTimer.scheduleAtFixedRate(transactions, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_TRANSACTIONS));
+            // product reviews
+            ProductReviewsTask productReviews = new ProductReviewsTask(config, queue, productReviewGenerator);
+            generateTimer.scheduleAtFixedRate(productReviews, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_PRODUCTREVIEWS));
+        }
+       if (outputsToGenerate.contains("TRANSACTIONS")) {
+            // transactions
+            TransactionTask transactions = new TransactionTask(config, queue);
+            generateTimer.scheduleAtFixedRate(transactions, 0, config.getInt(DatagenSourceConfig.CONFIG_TIMES_TRANSACTIONS));
+       }
     }
 
 

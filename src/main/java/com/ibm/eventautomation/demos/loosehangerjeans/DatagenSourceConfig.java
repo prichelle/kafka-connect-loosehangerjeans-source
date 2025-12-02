@@ -187,6 +187,8 @@ public class DatagenSourceConfig {
     public static final String CONFIG_GROUP_PRIORITIES = "Priorities";
     public static final String CONFIG_PRIORITIES = "priorities.priority";
 
+    public static final String CONFIG_GEN_OUTPUT = "gen.outputs";
+
     public static final ConfigDef CONFIG_DEF = new ConfigDef()
         //
         // format to use
@@ -302,6 +304,14 @@ public class DatagenSourceConfig {
         //
         // how to generate locations
         //
+        .define(CONFIG_GEN_OUTPUT,
+                    Type.LIST,
+                    Arrays.asList("ORDERS,STOCKMOVEMENTS,BADGEINS,CUSTOMERS,SENSORREADINGS,ONLINEORDERS,PRODUCTS,TRANSACTIONS"),
+                    new ValidTermsList(),
+                    Importance.LOW,
+                    "ouput to generate events for. Valid values are: ORDERS,STOCKMOVEMENTS,BADGEINS,CUSTOMERS,SENSORREADINGS,ONLINEORDERS,PRODUCTS, TRANSACTIONS",
+                    CONFIG_GROUP_LOCATIONS, 1, Width.MEDIUM, "Outputs to generate events for")
+        
         .define(CONFIG_LOCATIONS_REGIONS,
                     Type.LIST,
                     Arrays.asList("NA", "SA", "EMEA", "APAC", "ANZ"),
